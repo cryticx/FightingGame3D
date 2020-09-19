@@ -1,0 +1,13 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "{0004D76D-08D8-5968-3F3F-F84ADC4A4136}",
+	"Category": "",
+	"Description": "",
+	"Modules": [
+		{
+			"Name": "FightingGame3D",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}
