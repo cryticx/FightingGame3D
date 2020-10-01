@@ -45,6 +45,12 @@ AFightingGame3DCharacter::AFightingGame3DCharacter()
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
+	
+	equip = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Equip"));
+	equip->SetupAttachment(GetMesh(), FName(TEXT("thumb_03_r")));
+    
+    health = maxHealth = 100.f;
+    cooldown = 0.f;
 }
 
 //////////////////////////////////////////////////////////////////////////
