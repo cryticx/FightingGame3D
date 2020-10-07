@@ -12,8 +12,7 @@
 //////////////////////////////////////////////////////////////////////////
 // AFightingGame3DCharacter
 
-AFightingGame3DCharacter::AFightingGame3DCharacter()
-{
+AFightingGame3DCharacter::AFightingGame3DCharacter() {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 
@@ -56,8 +55,7 @@ AFightingGame3DCharacter::AFightingGame3DCharacter()
 //////////////////////////////////////////////////////////////////////////
 // Input
 
-void AFightingGame3DCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
-{
+void AFightingGame3DCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) {
 	// Set up gameplay key bindings
 	check(PlayerInputComponent);
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
@@ -83,35 +81,29 @@ void AFightingGame3DCharacter::SetupPlayerInputComponent(class UInputComponent* 
 }
 
 
-void AFightingGame3DCharacter::OnResetVR()
-{
+void AFightingGame3DCharacter::OnResetVR() {
 	UHeadMountedDisplayFunctionLibrary::ResetOrientationAndPosition();
 }
 
-void AFightingGame3DCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
-{
+void AFightingGame3DCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location) {
 		Jump();
 }
 
-void AFightingGame3DCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location)
-{
+void AFightingGame3DCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location) {
 		StopJumping();
 }
 
-void AFightingGame3DCharacter::TurnAtRate(float Rate)
-{
+void AFightingGame3DCharacter::TurnAtRate(float Rate) {
 	// calculate delta for this frame from the rate information
 	AddControllerYawInput(Rate * BaseTurnRate * GetWorld()->GetDeltaSeconds());
 }
 
-void AFightingGame3DCharacter::LookUpAtRate(float Rate)
-{
+void AFightingGame3DCharacter::LookUpAtRate(float Rate) {
 	// calculate delta for this frame from the rate information
 	AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
 }
 
-void AFightingGame3DCharacter::MoveForward(float Value)
-{
+void AFightingGame3DCharacter::MoveForward(float Value) {
 	if ((Controller != NULL) && (Value != 0.0f))
 	{
 		// find out which way is forward
@@ -124,8 +116,7 @@ void AFightingGame3DCharacter::MoveForward(float Value)
 	}
 }
 
-void AFightingGame3DCharacter::MoveRight(float Value)
-{
+void AFightingGame3DCharacter::MoveRight(float Value) {
 	if ( (Controller != NULL) && (Value != 0.0f) )
 	{
 		// find out which way is right
@@ -137,4 +128,11 @@ void AFightingGame3DCharacter::MoveRight(float Value)
 		// add movement in that direction
 		AddMovementInput(Direction, Value);
 	}
+}
+
+float AFightingGame3DCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const & DamageEvent, class AController * EventInstigator, AActor * DamageCauser) {
+	health -= DamageAmount;
+	if (health <= 0.f)
+		SetLifeSpan(0.01f);
+	return DamageAmount;
 }
