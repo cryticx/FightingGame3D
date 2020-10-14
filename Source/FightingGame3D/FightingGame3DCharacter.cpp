@@ -47,7 +47,10 @@ AFightingGame3DCharacter::AFightingGame3DCharacter() {
 	
 	equip = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Equip"));
 	equip->SetupAttachment(GetMesh(), FName(TEXT("thumb_03_r")));
-    
+
+	equip->OnComponentBeginOverlap.AddDynamic(this, &AFightingGame3DCharacter::WeaponOverlapBegin);
+	equip->OnComponentEndOverlap.AddDynamic(this, &AFightingGame3DCharacter::WeaponOverlapEnd);
+
     health = maxHealth = 100.f;
     cooldown = 0.f;
 }
@@ -75,6 +78,14 @@ void AFightingGame3DCharacter::SetupPlayerInputComponent(class UInputComponent* 
 	// handle touch devices
 	PlayerInputComponent->BindTouch(IE_Pressed, this, &AFightingGame3DCharacter::TouchStarted);
 	PlayerInputComponent->BindTouch(IE_Released, this, &AFightingGame3DCharacter::TouchStopped);
+	PlayerInputComponent->BindAction("Dash", IE_Pressed, this, &AFightingGame3DCharacter::Dash);
+	PlayerInputComponent->BindAction("Dodge", IE_Pressed, this, &AFightingGame3DCharacter::Dodge);
+	PlayerInputComponent->BindAction("Offensive Special", IE_Pressed, this, &AFightingGame3DCharacter::Offensive_Special);
+	PlayerInputComponent->BindAction("Defensive Special", IE_Pressed, this, &AFightingGame3DCharacter::Defensive_Special);
+	PlayerInputComponent->BindAction("Attack 1", IE_Pressed, this, &AFightingGame3DCharacter::Attack1);
+	PlayerInputComponent->BindAction("Attack 2", IE_Pressed, this, &AFightingGame3DCharacter::Attack2);
+	PlayerInputComponent->BindAction("Attack 3", IE_Pressed, this, &AFightingGame3DCharacter::Attack3);
+	PlayerInputComponent->BindAction("Attack 4", IE_Pressed, this, &AFightingGame3DCharacter::Attack4);
 
 	// VR headset functionality
 	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &AFightingGame3DCharacter::OnResetVR);
@@ -135,4 +146,57 @@ float AFightingGame3DCharacter::TakeDamage(float DamageAmount, struct FDamageEve
 	if (health <= 0.f)
 		SetLifeSpan(0.01f);
 	return DamageAmount;
+}
+
+void AFightingGame3DCharacter::Dash() {
+	UE_LOG(LogTemp, Warning, TEXT("Dash"));
+}
+
+void AFightingGame3DCharacter::Dodge() {
+	UE_LOG(LogTemp, Warning, TEXT("Dodge"));
+}
+
+void AFightingGame3DCharacter::Offensive_Special() {
+	UE_LOG(LogTemp, Warning, TEXT("Offensive Special"));
+}
+
+void AFightingGame3DCharacter::Defensive_Special() {
+	UE_LOG(LogTemp, Warning, TEXT("Defensive Special"));
+}
+
+void AFightingGame3DCharacter::Attack1() {
+	UE_LOG(LogTemp, Warning, TEXT("Attack 1"));
+}
+
+void AFightingGame3DCharacter::Attack2() {
+	UE_LOG(LogTemp, Warning, TEXT("Attack 2"));
+}
+
+void AFightingGame3DCharacter::Attack3() {
+	UE_LOG(LogTemp, Warning, TEXT("Attack 3"));
+}
+
+void AFightingGame3DCharacter::Attack4() {
+	UE_LOG(LogTemp, Warning, TEXT("Attack 4"));
+}
+
+void AFightingGame3DCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+}
+
+void AFightingGame3DCharacter::WeaponOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (OtherActor && (OtherActor != this) && OtherComp)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Hitting"));
+	}
+}
+
+void AFightingGame3DCharacter::WeaponOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	if (OtherActor && (OtherActor != this) && OtherComp)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Not Hitting"));
+	}
 }
