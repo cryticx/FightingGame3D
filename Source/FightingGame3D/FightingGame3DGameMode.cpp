@@ -2,7 +2,6 @@
 
 #include "FightingGame3DGameMode.h"
 #include "FightingGame3DCharacter.h"
-#include "FightingGame3DHUD.h"
 #include "UObject/ConstructorHelpers.h"
 
 AFightingGame3DGameMode::AFightingGame3DGameMode()
