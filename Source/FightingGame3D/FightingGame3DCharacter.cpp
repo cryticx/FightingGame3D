@@ -49,7 +49,6 @@ AFightingGame3DCharacter::AFightingGame3DCharacter() {
 	equip->SetupAttachment(GetMesh(), FName(TEXT("thumb_03_r")));
 
 	equip->OnComponentBeginOverlap.AddDynamic(this, &AFightingGame3DCharacter::WeaponOverlapBegin);
-	equip->OnComponentEndOverlap.AddDynamic(this, &AFightingGame3DCharacter::WeaponOverlapEnd);
 
     health = maxHealth = 100.f;
     cooldown = 0.f;
@@ -190,13 +189,5 @@ void AFightingGame3DCharacter::WeaponOverlapBegin(class UPrimitiveComponent* Ove
 	if (OtherActor && (OtherActor != this) && OtherComp)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Hitting"));
-	}
-}
-
-void AFightingGame3DCharacter::WeaponOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-	if (OtherActor && (OtherActor != this) && OtherComp)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Not Hitting"));
 	}
 }

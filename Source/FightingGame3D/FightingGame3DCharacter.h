@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Animation/AnimSequence.h"
+#include "Animation/BlendSpace.h"
 #include "FightingGame3DCharacter.generated.h"
 
 UCLASS(config=Game)
@@ -21,6 +23,12 @@ class AFightingGame3DCharacter : public ACharacter
     
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh, meta = (AllowPrivateAccess = "true"))
 	class UStaticMeshComponent* equip;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
+	class UAnimInstance* anim;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
+	class UBlendSpace* blend;
     
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Status, meta = (AllowPrivateAccess = "true"))
 	float maxHealth;
@@ -28,7 +36,7 @@ class AFightingGame3DCharacter : public ACharacter
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Status, meta = (AllowPrivateAccess = "true"))
 	float health;
     
-    float active, cooldown;
+    float active, cooldown, animTimer;
 	
 protected:
 
@@ -82,11 +90,7 @@ public:
 	void Attack4();
 	
 	UFUNCTION()
-		void WeaponOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-
-	// declare overlap end function
-	UFUNCTION()
-		void WeaponOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+	void WeaponOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
