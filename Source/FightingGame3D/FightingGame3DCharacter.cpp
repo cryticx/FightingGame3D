@@ -13,6 +13,7 @@
 // AFightingGame3DCharacter
 
 AFightingGame3DCharacter::AFightingGame3DCharacter() {
+	PrimaryActorTick.bCanEverTick = true;
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 
@@ -57,8 +58,31 @@ AFightingGame3DCharacter::AFightingGame3DCharacter() {
 	sword->OnComponentBeginOverlap.AddDynamic(this, &AFightingGame3DCharacter::WeaponOverlapBegin);
 	sword->OnComponentEndOverlap.AddDynamic(this, &AFightingGame3DCharacter::WeaponOverlapEnd);
 
-    health = maxHealth = 100.f;
-    cooldown = 0.f;
+	//Setup Vars
+    health = maxHealth = 100.0f;
+	stamina = maxStamina = 100.0f;
+	stamregen = 10;
+	actionTimer = 100;
+	invincibilityTimer = 100;
+	hitstunTimer = 0;
+	can_act = true;
+	acting = false;
+
+	//Setup Animations
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation1(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Attack_PrimaryB'"));
+	Attack1Anim = animation1.Object;
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation2(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Attack_A_Med'"));
+	Attack2Anim = animation2.Object;
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation3(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Ability_E'"));
+	Attack3Anim = animation3.Object;
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation4(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Attack_C_Med'"));
+	Attack4Anim = animation4.Object;
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation5(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Ability_R'"));
+	OSpecialAnim = animation5.Object;
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation6(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Ability_Q'"));
+	DSpecialAnim = animation6.Object;
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation7(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/HitReact_Front'"));
+	HurtAnim = animation7.Object;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -121,7 +145,7 @@ void AFightingGame3DCharacter::LookUpAtRate(float Rate) {
 }
 
 void AFightingGame3DCharacter::MoveForward(float Value) {
-	if ((Controller != NULL) && (Value != 0.0f))
+	if ((Controller != NULL) && (Value != 0.0f) && can_act)
 	{
 		// find out which way is forward
 		const FRotator Rotation = Controller->GetControlRotation();
@@ -134,7 +158,7 @@ void AFightingGame3DCharacter::MoveForward(float Value) {
 }
 
 void AFightingGame3DCharacter::MoveRight(float Value) {
-	if ( (Controller != NULL) && (Value != 0.0f) )
+	if ( (Controller != NULL) && (Value != 0.0f) && can_act)
 	{
 		// find out which way is right
 		const FRotator Rotation = Controller->GetControlRotation();
@@ -147,43 +171,79 @@ void AFightingGame3DCharacter::MoveRight(float Value) {
 	}
 }
 
-float AFightingGame3DCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const & DamageEvent, class AController * EventInstigator, AActor * DamageCauser) {
-	health -= DamageAmount;
-	if (health <= 0.f)
-		SetLifeSpan(0.01f);
+float AFightingGame3DCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) {
+	UE_LOG(LogTemp, Warning, TEXT("Damage"));
+	AFightingGame3DCharacter* other_character = (AFightingGame3DCharacter*)DamageCauser;
+	if (invincibilityTimer == 0 && other_character->acting)
+	{
+		FVector launch = other_character->GetActorForwardVector();
+		launch *= 100;
+		LaunchCharacter(launch,false,false);
+		GetMesh()->PlayAnimation(HurtAnim, false);
+		health -= DamageAmount;
+		invincibilityTimer = 100;
+		hitstunTimer = 50;
+		if (health <= 0.f)SetLifeSpan(0.01f);
+		return DamageAmount;
+	}
 	return DamageAmount;
 }
 
 void AFightingGame3DCharacter::Dash() {
-	UE_LOG(LogTemp, Warning, TEXT("Dash"));
+	if (SpendStamina()&& can_act) {
+		UE_LOG(LogTemp, Warning, TEXT("Dash"));
+	}
 }
 
 void AFightingGame3DCharacter::Dodge() {
-	UE_LOG(LogTemp, Warning, TEXT("Dodge"));
+	if (SpendStamina() && can_act) {
+		UE_LOG(LogTemp, Warning, TEXT("Dodge"));
+	}
 }
 
 void AFightingGame3DCharacter::Offensive_Special() {
-	UE_LOG(LogTemp, Warning, TEXT("Offensive Special"));
+	if (SpendStamina() && can_act) {
+		GetMesh()->PlayAnimation(OSpecialAnim, false);
+		actionTimer = 150;
+		UE_LOG(LogTemp, Warning, TEXT("Offensive Special"));
+	}
 }
 
 void AFightingGame3DCharacter::Defensive_Special() {
-	UE_LOG(LogTemp, Warning, TEXT("Defensive Special"));
+	if (SpendStamina() && can_act) {
+		GetMesh()->PlayAnimation(DSpecialAnim, false);
+		UE_LOG(LogTemp, Warning, TEXT("Defensive Special"));
+	}
 }
 
 void AFightingGame3DCharacter::Attack1() {
-	UE_LOG(LogTemp, Warning, TEXT("Attack 1"));
+	if (SpendStamina() && can_act) {
+		GetMesh()->PlayAnimation(Attack1Anim, false);
+		UE_LOG(LogTemp, Warning, TEXT("Attack 1"));
+	}
 }
 
 void AFightingGame3DCharacter::Attack2() {
-	UE_LOG(LogTemp, Warning, TEXT("Attack 2"));
+	if (SpendStamina() && can_act) {
+		//for testing purposes
+		//actionTimer = 30;
+		GetMesh()->PlayAnimation(Attack2Anim, false);
+		UE_LOG(LogTemp, Warning, TEXT("Attack 2"));
+	}
 }
 
 void AFightingGame3DCharacter::Attack3() {
-	UE_LOG(LogTemp, Warning, TEXT("Attack 3"));
+	if (SpendStamina() && can_act) {
+		GetMesh()->PlayAnimation(Attack3Anim, false);
+		UE_LOG(LogTemp, Warning, TEXT("Attack 3"));
+	}
 }
 
 void AFightingGame3DCharacter::Attack4() {
-	UE_LOG(LogTemp, Warning, TEXT("Attack 4"));
+	if (SpendStamina() && can_act) {
+		GetMesh()->PlayAnimation(Attack4Anim, false);
+		UE_LOG(LogTemp, Warning, TEXT("Attack 4"));
+	}
 }
 
 void AFightingGame3DCharacter::BeginPlay()
@@ -195,6 +255,10 @@ void AFightingGame3DCharacter::WeaponOverlapBegin(class UPrimitiveComponent* Ove
 {
 	if (OtherActor && (OtherActor != this) && OtherComp)
 	{
+		FDamageEvent damage = FDamageEvent();
+		OtherActor->TakeDamage(10.0f, damage, Controller, this);
+		AFightingGame3DCharacter* other_character = (AFightingGame3DCharacter*)OtherActor;
+		UE_LOG(LogTemp, Warning, TEXT("Health : %f"), other_character->health);
 		UE_LOG(LogTemp, Warning, TEXT("Hitting"));
 	}
 }
@@ -204,5 +268,57 @@ void AFightingGame3DCharacter::WeaponOverlapEnd(class UPrimitiveComponent* Overl
 	if (OtherActor && (OtherActor != this) && OtherComp)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Not Hitting"));
+	}
+}
+
+bool AFightingGame3DCharacter::SpendStamina() {
+	UE_LOG(LogTemp, Warning, TEXT("Stamina : %f"), stamina);
+	if (stamina >= 9.9f && !acting) {
+		stamina -= 10.0f;
+		acting = true;
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
+void AFightingGame3DCharacter::RegenStamina() {
+	if (stamina < maxStamina) {
+		stamina += 0.5f;
+		//UE_LOG(LogTemp, Warning, TEXT("Stamina : %f"), stamina);
+		return;
+	}
+	else {
+		return;
+	}
+}
+void AFightingGame3DCharacter::Tick(float DeltaSeconds) {
+	if (stamregen == 0) {
+		RegenStamina();
+		stamregen = 10;
+	}
+	else {
+		stamregen--;
+	}
+	if (acting) {
+		if (actionTimer == 0) {
+			can_act = true;
+			actionTimer = 100;
+			acting = false;
+		}
+		else{
+			can_act = false;
+			actionTimer--;
+			//UE_LOG(LogTemp, Warning, TEXT("Action Timer : %d"), actionTimer);
+		}
+	}
+	if (invincibilityTimer>0) {
+		UE_LOG(LogTemp, Warning, TEXT("Invincibility Timer : %d"), invincibilityTimer);
+		invincibilityTimer--;
+	}
+	if (hitstunTimer > 0) {
+		hitstunTimer--;
+		can_act = false;
 	}
 }
