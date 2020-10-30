@@ -37,9 +37,10 @@ AFightingGame3DCharacter::AFightingGame3DCharacter() {
 	sword->SetupAttachment(GetMesh(), FName(TEXT("FX_Sword_Top")));
 	
 	sword->OnComponentBeginOverlap.AddDynamic(this, &AFightingGame3DCharacter::WeaponOverlapBegin);
+	sword->OnComponentEndOverlap.AddDynamic(this, &AFightingGame3DCharacter::WeaponOverlapEnd);
 
 	//Setup Vars
-    health = maxHealth = 100.0f;
+	health = maxHealth = 100.0f;
 	stamina = maxStamina = 100.0f;
 	stamregen = 10;
 	actionTimer = 100;
@@ -47,6 +48,11 @@ AFightingGame3DCharacter::AFightingGame3DCharacter() {
 	hitstunTimer = 0;
 	can_act = true;
 	acting = false;
+	attacking = false;
+	forward = false;
+	back = true;
+	left = false;
+	right = false;
 
 	//Setup Animations
 	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation1(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Attack_PrimaryB'"));
@@ -63,6 +69,14 @@ AFightingGame3DCharacter::AFightingGame3DCharacter() {
 	DSpecialAnim = animation6.Object;
 	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation7(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/HitReact_Front'"));
 	HurtAnim = animation7.Object;
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation8(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Forward_Dodge'"));
+	DodgeFAnim = animation8.Object;
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation9(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Backward_Dodge'"));
+	DodgeBAnim = animation9.Object;
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation10(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Left_Dodge'"));
+	DodgeLAnim = animation10.Object;
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation11(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Right_Dodge'"));
+	DodgeRAnim = animation11.Object;
 }
 
 void AFightingGame3DCharacter::Tick(float DeltaTime) {
@@ -85,11 +99,20 @@ void AFightingGame3DCharacter::Tick(float DeltaTime) {
 			can_act = true;
 			actionTimer = 100;
 			acting = false;
+			attacking = false;
 		}
-		else{
+		else {
 			can_act = false;
 			actionTimer--;
 			//UE_LOG(LogTemp, Warning, TEXT("Action Timer : %d"), actionTimer);
+		}
+		if (dodge_timer == 0 && !dodge_launch.IsZero()) {
+			UE_LOG(LogTemp, Warning, TEXT("Dodging!"));
+			LaunchCharacter(dodge_launch, false, false);
+			dodge_launch.Set(0, 0, 0);
+		}
+		else {
+			dodge_timer--;
 		}
 	}
 	if (invincibilityTimer>0) {
@@ -99,6 +122,9 @@ void AFightingGame3DCharacter::Tick(float DeltaTime) {
 	if (hitstunTimer > 0) {
 		hitstunTimer--;
 		can_act = false;
+	}
+	if (hitstunTimer == 0 && !acting) {
+		can_act = true;
 	}
 }
 
@@ -131,6 +157,10 @@ void AFightingGame3DCharacter::SetupPlayerInputComponent(class UInputComponent* 
 	PlayerInputComponent->BindAction("Attack 2", IE_Pressed, this, &AFightingGame3DCharacter::Attack2);
 	PlayerInputComponent->BindAction("Attack 3", IE_Pressed, this, &AFightingGame3DCharacter::Attack3);
 	PlayerInputComponent->BindAction("Attack 4", IE_Pressed, this, &AFightingGame3DCharacter::Attack4);
+	PlayerInputComponent->BindAction("Forward", IE_Pressed, this, &AFightingGame3DCharacter::Forward);
+	PlayerInputComponent->BindAction("Back", IE_Pressed, this, &AFightingGame3DCharacter::Back);
+	PlayerInputComponent->BindAction("Left", IE_Pressed, this, &AFightingGame3DCharacter::Left);
+	PlayerInputComponent->BindAction("Right", IE_Pressed, this, &AFightingGame3DCharacter::Right);
 }
 
 void AFightingGame3DCharacter::TurnAtRate(float Rate) {
@@ -173,10 +203,10 @@ void AFightingGame3DCharacter::MoveRight(float Value) {
 float AFightingGame3DCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) {
 	UE_LOG(LogTemp, Warning, TEXT("Damage"));
 	AFightingGame3DCharacter* other_character = (AFightingGame3DCharacter*)DamageCauser;
-	if (invincibilityTimer == 0 && other_character->acting)
+	if (invincibilityTimer == 0 && other_character->attacking)
 	{
 		FVector launch = other_character->GetActorForwardVector();
-		launch *= 100;
+		launch *= 400;
 		LaunchCharacter(launch,false,false);
 		GetMesh()->PlayAnimation(HurtAnim, false);
 		health -= DamageAmount;
@@ -196,6 +226,27 @@ void AFightingGame3DCharacter::Dash() {
 
 void AFightingGame3DCharacter::Dodge() {
 	if (SpendStamina() && can_act) {
+		if (forward) {
+			GetMesh()->PlayAnimation(DodgeFAnim, false);
+			//For testing purposes
+			dodge_launch.Set(0, 0, 0);
+			//dodge_launch = GetActorForwardVector();
+		}
+		if (back) {
+			GetMesh()->PlayAnimation(DodgeBAnim, false);
+			dodge_launch = -GetActorForwardVector();
+		}
+		if (left) {
+			GetMesh()->PlayAnimation(DodgeLAnim, false);
+			dodge_launch = -GetActorRightVector();
+		}
+		if (right) {
+			GetMesh()->PlayAnimation(DodgeRAnim, false);
+			dodge_launch = GetActorRightVector();
+		}
+		dodge_launch *= 1200;
+		dodge_timer = 25;
+		actionTimer = 50;
 		UE_LOG(LogTemp, Warning, TEXT("Dodge"));
 	}
 }
@@ -204,6 +255,7 @@ void AFightingGame3DCharacter::Offensive_Special() {
 	if (SpendStamina() && can_act) {
 		GetMesh()->PlayAnimation(OSpecialAnim, false);
 		actionTimer = 150;
+		attacking = true;
 		UE_LOG(LogTemp, Warning, TEXT("Offensive Special"));
 	}
 }
@@ -211,6 +263,7 @@ void AFightingGame3DCharacter::Offensive_Special() {
 void AFightingGame3DCharacter::Defensive_Special() {
 	if (SpendStamina() && can_act) {
 		GetMesh()->PlayAnimation(DSpecialAnim, false);
+		attacking = true;
 		UE_LOG(LogTemp, Warning, TEXT("Defensive Special"));
 	}
 }
@@ -218,6 +271,7 @@ void AFightingGame3DCharacter::Defensive_Special() {
 void AFightingGame3DCharacter::Attack1() {
 	if (SpendStamina() && can_act) {
 		GetMesh()->PlayAnimation(Attack1Anim, false);
+		attacking = true;
 		UE_LOG(LogTemp, Warning, TEXT("Attack 1"));
 	}
 }
@@ -227,6 +281,7 @@ void AFightingGame3DCharacter::Attack2() {
 		//for testing purposes
 		//actionTimer = 30;
 		GetMesh()->PlayAnimation(Attack2Anim, false);
+		attacking = true;
 		UE_LOG(LogTemp, Warning, TEXT("Attack 2"));
 	}
 }
@@ -234,6 +289,7 @@ void AFightingGame3DCharacter::Attack2() {
 void AFightingGame3DCharacter::Attack3() {
 	if (SpendStamina() && can_act) {
 		GetMesh()->PlayAnimation(Attack3Anim, false);
+		attacking = true;
 		UE_LOG(LogTemp, Warning, TEXT("Attack 3"));
 	}
 }
@@ -241,6 +297,7 @@ void AFightingGame3DCharacter::Attack3() {
 void AFightingGame3DCharacter::Attack4() {
 	if (SpendStamina() && can_act) {
 		GetMesh()->PlayAnimation(Attack4Anim, false);
+		attacking = true;
 		UE_LOG(LogTemp, Warning, TEXT("Attack 4"));
 	}
 }
@@ -254,6 +311,14 @@ void AFightingGame3DCharacter::WeaponOverlapBegin(class UPrimitiveComponent* Ove
 		AFightingGame3DCharacter* other_character = (AFightingGame3DCharacter*)OtherActor;
 		UE_LOG(LogTemp, Warning, TEXT("Health : %f"), other_character->health);
 		UE_LOG(LogTemp, Warning, TEXT("Hitting"));
+	}
+}
+
+void AFightingGame3DCharacter::WeaponOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	if (OtherActor && (OtherActor != this) && OtherComp)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Not Hitting"));
 	}
 }
 
@@ -278,4 +343,29 @@ void AFightingGame3DCharacter::RegenStamina() {
 	else {
 		return;
 	}
+}
+
+void AFightingGame3DCharacter::Forward() {
+	forward = true;
+	back = false;
+	left = false;
+	right = false;
+}
+void AFightingGame3DCharacter::Back() {
+	forward = false;
+	back = true;
+	left = false;
+	right = false;
+}
+void AFightingGame3DCharacter::Left() {
+	forward = false;
+	back = false;
+	left = true;
+	right = false;
+}
+void AFightingGame3DCharacter::Right() {
+	forward = false;
+	back = false;
+	left = false;
+	right = true;
 }

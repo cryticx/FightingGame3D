@@ -14,7 +14,13 @@ class AFightingGame3DCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
 	UAnimSequence* DashAnim;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
-	UAnimSequence* DodgeAnim;
+		UAnimSequence* DodgeFAnim;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
+		UAnimSequence* DodgeBAnim;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
+		UAnimSequence* DodgeLAnim;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
+		UAnimSequence* DodgeRAnim;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
 	UAnimSequence* OSpecialAnim;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
@@ -49,8 +55,9 @@ class AFightingGame3DCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Status, meta = (AllowPrivateAccess = "true"))
 		float stamina;
     
-    int hitstunTimer, invincibilityTimer, actionTimer, stamregen;
-	bool can_act, acting;
+	int hitstunTimer, invincibilityTimer, actionTimer, stamregen, dodge_timer;
+	bool can_act, acting, attacking, forward, back, left, right;
+	FVector dodge_launch;
 	
 protected:
 
@@ -87,6 +94,10 @@ public:
 
 	void Dash();
 	void Dodge();
+	void Forward();
+	void Back();
+	void Left();
+	void Right();
 	void Offensive_Special();
 	void Defensive_Special();
 	void Attack1();
@@ -98,6 +109,9 @@ public:
 	
 	UFUNCTION()
 	void WeaponOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	UFUNCTION()
+	void WeaponOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const & DamageEvent, class AController * EventInstigator, AActor * DamageCauser) override;
 	virtual void Tick(float DeltaSeconds) override;
