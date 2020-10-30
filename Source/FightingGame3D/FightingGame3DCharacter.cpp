@@ -69,7 +69,7 @@ AFightingGame3DCharacter::AFightingGame3DCharacter() {
 	DSpecialAnim = animation6.Object;
 	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation7(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/HitReact_Front'"));
 	HurtAnim = animation7.Object;
-	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation8(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Forward_Dodge'"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation8(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/F_Dodge'"));
 	DodgeFAnim = animation8.Object;
 	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation9(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Backward_Dodge'"));
 	DodgeBAnim = animation9.Object;
@@ -229,8 +229,8 @@ void AFightingGame3DCharacter::Dodge() {
 		if (forward) {
 			GetMesh()->PlayAnimation(DodgeFAnim, false);
 			//For testing purposes
-			dodge_launch.Set(0, 0, 0);
-			//dodge_launch = GetActorForwardVector();
+			//dodge_launch.Set(0, 0, 0);
+			dodge_launch = GetActorForwardVector();
 		}
 		if (back) {
 			GetMesh()->PlayAnimation(DodgeBAnim, false);
