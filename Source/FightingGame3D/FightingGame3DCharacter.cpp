@@ -1,13 +1,11 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 #include "FightingGame3DCharacter.h"
-#include "HeadMountedDisplayFunctionLibrary.h"
-#include "Camera/CameraComponent.h"
+
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "GameFramework/Controller.h"
-#include "GameFramework/SpringArmComponent.h"
+#include "GameFramework/PlayerController.h"
+#include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
 
 //////////////////////////////////////////////////////////////////////////
 // AFightingGame3DCharacter
@@ -31,34 +29,25 @@ AFightingGame3DCharacter::AFightingGame3DCharacter() {
 	GetCharacterMovement()->JumpZVelocity = 600.f;
 	GetCharacterMovement()->AirControl = 0.2f;
 
-	// Create a camera boom (pulls in towards the player if there is a collision)
-	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
-	CameraBoom->SetupAttachment(RootComponent);
-	CameraBoom->TargetArmLength = 300.0f; // The camera follows at this distance behind the character	
-	CameraBoom->bUsePawnControlRotation = true; // Rotate the arm based on the controller
-
-	// Create a follow camera
-	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
-	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
-	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
-
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
-	
-	equip = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Equip"));
-	equip->SetupAttachment(GetMesh(), FName(TEXT("thumb_03_r")));
-
-	equip->OnComponentBeginOverlap.AddDynamic(this, &AFightingGame3DCharacter::WeaponOverlapBegin);
-	equip->OnComponentEndOverlap.AddDynamic(this, &AFightingGame3DCharacter::WeaponOverlapEnd);
 
 	sword = CreateDefaultSubobject<UCapsuleComponent>(TEXT("Sword"));
 	sword->SetupAttachment(GetMesh(), FName(TEXT("FX_Sword_Top")));
-
+	
 	sword->OnComponentBeginOverlap.AddDynamic(this, &AFightingGame3DCharacter::WeaponOverlapBegin);
-	sword->OnComponentEndOverlap.AddDynamic(this, &AFightingGame3DCharacter::WeaponOverlapEnd);
 
     health = maxHealth = 100.f;
     cooldown = 0.f;
+}
+
+void AFightingGame3DCharacter::Tick(float DeltaTime) {
+	if (Opponent != NULL)
+		SetActorRotation(UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), Opponent->GetActorLocation()), ETeleportType::None);
+	else if (((APlayerController*) GetController())->NetPlayerIndex == 0 && UGameplayStatics::GetPlayerController(GetWorld(), 1) != NULL)
+		Opponent = (AActor*) (UGameplayStatics::GetPlayerController(GetWorld(), 1)->GetCharacter());
+	else if (UGameplayStatics::GetPlayerController(GetWorld(), 0) != NULL)
+		Opponent = (AActor*) (UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetCharacter());
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -82,8 +71,6 @@ void AFightingGame3DCharacter::SetupPlayerInputComponent(class UInputComponent* 
 	PlayerInputComponent->BindAxis("LookUpRate", this, &AFightingGame3DCharacter::LookUpAtRate);
 
 	// handle touch devices
-	PlayerInputComponent->BindTouch(IE_Pressed, this, &AFightingGame3DCharacter::TouchStarted);
-	PlayerInputComponent->BindTouch(IE_Released, this, &AFightingGame3DCharacter::TouchStopped);
 	PlayerInputComponent->BindAction("Dash", IE_Pressed, this, &AFightingGame3DCharacter::Dash);
 	PlayerInputComponent->BindAction("Dodge", IE_Pressed, this, &AFightingGame3DCharacter::Dodge);
 	PlayerInputComponent->BindAction("Offensive Special", IE_Pressed, this, &AFightingGame3DCharacter::Offensive_Special);
@@ -92,22 +79,6 @@ void AFightingGame3DCharacter::SetupPlayerInputComponent(class UInputComponent* 
 	PlayerInputComponent->BindAction("Attack 2", IE_Pressed, this, &AFightingGame3DCharacter::Attack2);
 	PlayerInputComponent->BindAction("Attack 3", IE_Pressed, this, &AFightingGame3DCharacter::Attack3);
 	PlayerInputComponent->BindAction("Attack 4", IE_Pressed, this, &AFightingGame3DCharacter::Attack4);
-
-	// VR headset functionality
-	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &AFightingGame3DCharacter::OnResetVR);
-}
-
-
-void AFightingGame3DCharacter::OnResetVR() {
-	UHeadMountedDisplayFunctionLibrary::ResetOrientationAndPosition();
-}
-
-void AFightingGame3DCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location) {
-		Jump();
-}
-
-void AFightingGame3DCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location) {
-		StopJumping();
 }
 
 void AFightingGame3DCharacter::TurnAtRate(float Rate) {
@@ -186,23 +157,10 @@ void AFightingGame3DCharacter::Attack4() {
 	UE_LOG(LogTemp, Warning, TEXT("Attack 4"));
 }
 
-void AFightingGame3DCharacter::BeginPlay()
-{
-	Super::BeginPlay();
-}
-
 void AFightingGame3DCharacter::WeaponOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (OtherActor && (OtherActor != this) && OtherComp)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Hitting"));
-	}
-}
-
-void AFightingGame3DCharacter::WeaponOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-	if (OtherActor && (OtherActor != this) && OtherComp)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Not Hitting"));
 	}
 }
