@@ -42,7 +42,6 @@ AFightingGame3DCharacter::AFightingGame3DCharacter() {
 	//Setup Vars
 	health = maxHealth = 100.0f;
 	stamina = maxStamina = 100.0f;
-	stamregen = 10;
 	actionTimer = 100;
 	invincibilityTimer = 100;
 	hitstunTimer = 0;
@@ -87,13 +86,12 @@ void AFightingGame3DCharacter::Tick(float DeltaTime) {
 	else if (UGameplayStatics::GetPlayerController(GetWorld(), 0) != NULL)
 		Opponent = (AActor*) (UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetCharacter());
 	
-	if (stamregen == 0) {
-		RegenStamina();
-		stamregen = 10;
+	if (stamina < maxStamina) {
+		stamina += 5.f * DeltaTime;
+		if (stamina > maxStamina)
+			stamina = maxStamina;
 	}
-	else {
-		stamregen--;
-	}
+
 	if (acting) {
 		if (actionTimer == 0) {
 			can_act = true;
@@ -324,24 +322,13 @@ void AFightingGame3DCharacter::WeaponOverlapEnd(class UPrimitiveComponent* Overl
 
 bool AFightingGame3DCharacter::SpendStamina() {
 	UE_LOG(LogTemp, Warning, TEXT("Stamina : %f"), stamina);
-	if (stamina >= 9.9f && !acting) {
-		stamina -= 10.0f;
+	if (stamina >= 14.9f && !acting) {
+		stamina -= 15.0f;
 		acting = true;
 		return true;
 	}
 	else {
 		return false;
-	}
-}
-
-void AFightingGame3DCharacter::RegenStamina() {
-	if (stamina < maxStamina) {
-		stamina += 0.5f;
-		//UE_LOG(LogTemp, Warning, TEXT("Stamina : %f"), stamina);
-		return;
-	}
-	else {
-		return;
 	}
 }
 
