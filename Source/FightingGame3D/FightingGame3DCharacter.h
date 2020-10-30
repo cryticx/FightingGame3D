@@ -50,12 +50,12 @@ class AFightingGame3DCharacter : public ACharacter
     float active, cooldown;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Status, meta = (AllowPrivateAccess = "true"))
-		float maxStamina;
+	float maxStamina;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Status, meta = (AllowPrivateAccess = "true"))
-		float stamina;
+	float stamina;
     
-	int hitstunTimer, invincibilityTimer, actionTimer, stamregen, dodge_timer;
+	int hitstunTimer, invincibilityTimer, actionTimer, dodge_timer;
 	bool can_act, acting, attacking, forward, back, left, right;
 	FVector dodge_launch;
 	
@@ -105,7 +105,6 @@ public:
 	void Attack3();
 	void Attack4();
 	bool SpendStamina();
-	void RegenStamina();
 	
 	UFUNCTION()
 	void WeaponOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
