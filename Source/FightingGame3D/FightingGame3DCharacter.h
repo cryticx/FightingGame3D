@@ -12,15 +12,13 @@ class AFightingGame3DCharacter : public ACharacter
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
-	UAnimSequence* DashAnim;
+	UAnimSequence* DodgeFAnim;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
-		UAnimSequence* DodgeFAnim;
+	UAnimSequence* DodgeBAnim;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
-		UAnimSequence* DodgeBAnim;
+	UAnimSequence* DodgeLAnim;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
-		UAnimSequence* DodgeLAnim;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
-		UAnimSequence* DodgeRAnim;
+	UAnimSequence* DodgeRAnim;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
 	UAnimSequence* OSpecialAnim;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
@@ -47,20 +45,19 @@ class AFightingGame3DCharacter : public ACharacter
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Status, meta = (AllowPrivateAccess = "true"))
 	float health;
 	
-    float active, cooldown;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Status, meta = (AllowPrivateAccess = "true"))
 	float maxStamina;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Status, meta = (AllowPrivateAccess = "true"))
 	float stamina;
     
-	int hitstunTimer, invincibilityTimer, actionTimer, dodge_timer;
-	bool can_act, acting, attacking, forward, back, left, right;
+	float actTimer, staminaRegen, attackDamage;
+	
+	bool attacking, attackHit, blocking, dodging, back, left, right;
+	
 	FVector dodge_launch;
 	
 protected:
-
 	/** Called for forwards/backward input */
 	void MoveForward(float Value);
 
@@ -91,26 +88,19 @@ public:
 	/** Base look up/down rate, in deg/sec. Other scaling may affect final rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseLookUpRate;
-
-	void Dash();
+	
 	void Dodge();
-	void Forward();
-	void Back();
-	void Left();
-	void Right();
 	void Offensive_Special();
 	void Defensive_Special();
 	void Attack1();
 	void Attack2();
 	void Attack3();
 	void Attack4();
-	bool SpendStamina();
+	
+	bool SpendStamina(float amount);
 	
 	UFUNCTION()
 	void WeaponOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-
-	UFUNCTION()
-	void WeaponOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const & DamageEvent, class AController * EventInstigator, AActor * DamageCauser) override;
 	virtual void Tick(float DeltaSeconds) override;

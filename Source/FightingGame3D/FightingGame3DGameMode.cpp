@@ -1,6 +1,6 @@
+#include "FightingGame3DGameMode.h"
 #include "FightingGame3DCharacter.h"
 
-#include "FightingGame3DGameMode.h"
 #include "Kismet/GameplayStatics.h"
 #include "UObject/ConstructorHelpers.h"
 
