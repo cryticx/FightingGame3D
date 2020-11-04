@@ -87,7 +87,7 @@ void AFightingGame3DCharacter::Tick(float DeltaTime) {
 	}
 	
 	if (actTimer <= 0.f)
-		attacking = dodging = attackHit = back = left = right = false;
+		attacking = dodging = attackHit = false;
 	else
 		actTimer -= DeltaTime;
 }
@@ -134,6 +134,10 @@ void AFightingGame3DCharacter::MoveForward(float Value) {
 		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 		AddMovementInput(Direction, Value);
 	}
+	if (Value < 0)
+		back = true;
+	else
+		back = false;
 }
 
 void AFightingGame3DCharacter::MoveRight(float Value) {
@@ -147,6 +151,14 @@ void AFightingGame3DCharacter::MoveRight(float Value) {
 		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 		// add movement in that direction
 		AddMovementInput(Direction, Value);
+	}
+	if (Value < 0) {
+		left = true;
+		right = false;
+	}
+	else {
+		left = false;
+		right = true;
 	}
 }
 
