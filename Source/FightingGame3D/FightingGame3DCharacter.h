@@ -55,8 +55,6 @@ class AFightingGame3DCharacter : public ACharacter
 	
 	bool attacking, attackHit, blocking, dodging, back, left, right;
 	
-	FVector dodge_launch;
-	
 protected:
 	/** Called for forwards/backward input */
 	void MoveForward(float Value);

@@ -180,28 +180,27 @@ void AFightingGame3DCharacter::Dodge() {
 	if (actTimer <= 0.f && SpendStamina(20.f)) {
 		if (back) {
 			GetMesh()->PlayAnimation(DodgeBAnim, false);
-			dodge_launch = -GetActorForwardVector();
+			LaunchCharacter(GetActorForwardVector() * -2000.f, true, false);
 			dodging = true;
 			actTimer = 0.776f;
 		}
 		else if (left) {
 			GetMesh()->PlayAnimation(DodgeLAnim, false);
-			dodge_launch = -GetActorRightVector();
+			LaunchCharacter(GetActorRightVector() * -2000.f, true, false);
 			dodging = true;
 			actTimer = 1.154f;
 		}
 		else if (right) {
 			GetMesh()->PlayAnimation(DodgeRAnim, false);
-			dodge_launch = GetActorRightVector();
+			LaunchCharacter(GetActorRightVector() * 2000.f, true, false);
 			dodging = true;
 			actTimer = 1.184f;
 		}
 		else { // dash forward by default
 			GetMesh()->PlayAnimation(DodgeFAnim, false);
-			dodge_launch = GetActorForwardVector();
+			LaunchCharacter(GetActorForwardVector() * 2000.f, true, false);
 			actTimer = 0.824f;
 		}
-		dodge_launch *= 1200;
 	}
 }
 
