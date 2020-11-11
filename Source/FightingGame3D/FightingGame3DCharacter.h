@@ -51,9 +51,11 @@ class AFightingGame3DCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Status, meta = (AllowPrivateAccess = "true"))
 	float stamina;
     
-	float actTimer, staminaRegen, attackDamage;
+	float actTimer, inputBufferTimer, staminaRegen, attackDamage;
 	
 	bool attacking, attackHit, blocking, dodging, back, left, right;
+	
+	void (AFightingGame3DCharacter::*inputBuffer)();
 	
 protected:
 	/** Called for forwards/backward input */

@@ -10,6 +10,8 @@
 //////////////////////////////////////////////////////////////////////////
 // AFightingGame3DCharacter
 
+const float inputBufferingTime = 0.4f;
+
 AFightingGame3DCharacter::AFightingGame3DCharacter() {
 	PrimaryActorTick.bCanEverTick = true;
 	// Set size for collision capsule
@@ -86,10 +88,17 @@ void AFightingGame3DCharacter::Tick(float DeltaTime) {
 			stamina = maxStamina;
 	}
 	
-	if (actTimer <= 0.f)
+	if (actTimer <= 0.f) {
 		attacking = dodging = attackHit = false;
-	else
+		if (inputBufferTimer > 0.f)
+			(this->*inputBuffer)();
+		inputBufferTimer = 0.f;
+	}
+	else {
 		actTimer -= DeltaTime;
+		if (inputBufferTimer > 0.f)
+			inputBufferTimer -= DeltaTime;
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -169,47 +178,66 @@ float AFightingGame3DCharacter::TakeDamage(float DamageAmount, struct FDamageEve
 		GetMesh()->PlayAnimation(HurtAnim, false);
 		health -= DamageAmount;
 		actTimer = 0.5f;
-		if (health <= 0.f)
-			SetLifeSpan(0.01f);
+		if (health <= 0.f) {
+			DetachFromControllerPendingDestroy();
+			GetMesh()->SetCollisionProfileName(FName(TEXT("Ragdoll")), true);
+			GetMesh()->SetSimulatePhysics(true);
+			GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		}
 		return DamageAmount;
 	}
 	return 0.f;
 }
 
 void AFightingGame3DCharacter::Dodge() {
-	if (actTimer <= 0.f && SpendStamina(20.f)) {
-		if (back) {
-			GetMesh()->PlayAnimation(DodgeBAnim, false);
-			LaunchCharacter(GetActorForwardVector() * -2000.f, true, false);
-			dodging = true;
-			actTimer = 0.776f;
+	if (actTimer <= 0.f) {
+		if (SpendStamina(20.f)) {
+			if (back) {
+				GetMesh()->PlayAnimation(DodgeBAnim, false);
+				LaunchCharacter(GetActorForwardVector() * -2000.f, true, false);
+				dodging = true;
+				actTimer = 0.776f;
+			}
+			else if (left) {
+				GetMesh()->PlayAnimation(DodgeLAnim, false);
+				LaunchCharacter(GetActorRightVector() * -2000.f, true, false);
+				dodging = true;
+				actTimer = 1.154f;
+			}
+			else if (right) {
+				GetMesh()->PlayAnimation(DodgeRAnim, false);
+				LaunchCharacter(GetActorRightVector() * 2000.f, true, false);
+				dodging = true;
+				actTimer = 1.184f;
+			}
+			else { // dash forward by default
+				GetMesh()->PlayAnimation(DodgeFAnim, false);
+				LaunchCharacter(GetActorForwardVector() * 2000.f, true, false);
+				actTimer = 0.824f;
+			}
 		}
-		else if (left) {
-			GetMesh()->PlayAnimation(DodgeLAnim, false);
-			LaunchCharacter(GetActorRightVector() * -2000.f, true, false);
-			dodging = true;
-			actTimer = 1.154f;
-		}
-		else if (right) {
-			GetMesh()->PlayAnimation(DodgeRAnim, false);
-			LaunchCharacter(GetActorRightVector() * 2000.f, true, false);
-			dodging = true;
-			actTimer = 1.184f;
-		}
-		else { // dash forward by default
-			GetMesh()->PlayAnimation(DodgeFAnim, false);
-			LaunchCharacter(GetActorForwardVector() * 2000.f, true, false);
-			actTimer = 0.824f;
-		}
+	}
+	else {
+		inputBufferTimer = inputBufferingTime;
+		inputBuffer = &AFightingGame3DCharacter::Dodge;
 	}
 }
 
 void AFightingGame3DCharacter::Offensive_Special() {
-	if (actTimer <= 0.f && SpendStamina(25.f)) {
-		attacking = true;
-		GetMesh()->PlayAnimation(OSpecialAnim, false);
-		actTimer = 1.867f;
-		attackDamage = 12.f;
+	if (actTimer <= 0.f) {
+		if (SpendStamina(25.f)) {
+			attacking = true;
+			GetMesh()->PlayAnimation(OSpecialAnim, false);
+			actTimer = 1.867f;
+			attackDamage = 12.f;
+		}		attacking = true;
+		GetMesh()->PlayAnimation(Attack1Anim, false);
+		actTimer = 1.4f;
+		attackDamage = 8.f;
+	}
+	else {
+		inputBufferTimer = inputBufferingTime;
+		inputBuffer = &AFightingGame3DCharacter::Offensive_Special;
 	}
 }
 
@@ -219,11 +247,17 @@ void AFightingGame3DCharacter::Defensive_Special() {
 }
 
 void AFightingGame3DCharacter::Attack1() {
-	if (actTimer <= 0.f && SpendStamina(15.f)) {
-		attacking = true;
-		GetMesh()->PlayAnimation(Attack1Anim, false);
-		actTimer = 1.4f;
-		attackDamage = 8.f;
+	if (actTimer <= 0.f) {
+		if (SpendStamina(15.f)) {
+			attacking = true;
+			GetMesh()->PlayAnimation(Attack1Anim, false);
+			actTimer = 1.4f;
+			attackDamage = 8.f;
+		}
+	}
+	else {
+		inputBufferTimer = inputBufferingTime;
+		inputBuffer = &AFightingGame3DCharacter::Attack1;
 	}
 }
 
@@ -234,6 +268,10 @@ void AFightingGame3DCharacter::Attack2() {
 		actTimer = 0.8f;
 		attackDamage = 8.f;
 	}
+	else {
+		inputBufferTimer = inputBufferingTime;
+		inputBuffer = &AFightingGame3DCharacter::Attack2;
+	}
 }
 
 void AFightingGame3DCharacter::Attack3() {
@@ -242,6 +280,10 @@ void AFightingGame3DCharacter::Attack3() {
 		GetMesh()->PlayAnimation(Attack3Anim, false);
 		actTimer = 1.267f;
 		attackDamage = 8.f;
+	}
+	else {
+		inputBufferTimer = inputBufferingTime;
+		inputBuffer = &AFightingGame3DCharacter::Attack3;
 	}
 }
 
@@ -252,6 +294,10 @@ void AFightingGame3DCharacter::Attack4() {
 		actTimer = 1.867f;
 		attackDamage = 12.f;
 	}
+	else {
+		inputBufferTimer = inputBufferingTime;
+		inputBuffer = &AFightingGame3DCharacter::Attack4;
+	}
 }
 
 void AFightingGame3DCharacter::WeaponOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) {
@@ -259,6 +305,7 @@ void AFightingGame3DCharacter::WeaponOverlapBegin(class UPrimitiveComponent* Ove
 	{
 		FDamageEvent damage = FDamageEvent();
 		OtherActor->TakeDamage(attackDamage, damage, Controller, this);
+		attackHit = true;
 	}
 }
 
