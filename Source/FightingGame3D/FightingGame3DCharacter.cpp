@@ -32,9 +32,6 @@ AFightingGame3DCharacter::AFightingGame3DCharacter() {
 	GetCharacterMovement()->JumpZVelocity = 600.f;
 	GetCharacterMovement()->AirControl = 0.2f;
 
-	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
-	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
-
 	sword = CreateDefaultSubobject<UCapsuleComponent>(TEXT("Sword"));
 	sword->SetupAttachment(GetMesh(), FName(TEXT("FX_Sword_Top")));
 	
@@ -47,11 +44,16 @@ AFightingGame3DCharacter::AFightingGame3DCharacter() {
 	staminaRegen = 20.f;
 	
 	actTimer = 0.f;
+	comboCounter = 0;
 	attacking = blocking = dodging = false;
 
 	//Setup Animations
-	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation1(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Attack_PrimaryB'"));
-	Attack1Anim = animation1.Object;
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> animation1(TEXT("AnimMontage'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Attack_PrimaryA_Montage'"));
+	Attack1AnimC0 = animation1.Object;
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> animation1(TEXT("AnimMontage'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Attack_PrimaryB_Montage'"));
+	Attack1AnimC1 = animation1.Object;
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> animation1(TEXT("AnimMontage'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Attack_PrimaryC_Montage'"));
+	Attack1AnimC2 = animation1.Object;
 	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation2(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Attack_A_Med'"));
 	Attack2Anim = animation2.Object;
 	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation3(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Ability_E'"));
@@ -175,7 +177,7 @@ float AFightingGame3DCharacter::TakeDamage(float DamageAmount, struct FDamageEve
 	if (!dodging)
 	{
 		LaunchCharacter(((AFightingGame3DCharacter*)DamageCauser)->GetActorForwardVector() * 400.f, false, false);
-		GetMesh()->PlayAnimation(HurtAnim, false);
+		//GetMesh()->PlayAnimation(HurtAnim, false);
 		health -= DamageAmount;
 		actTimer = 0.5f;
 		if (health <= 0.f) {
@@ -230,10 +232,7 @@ void AFightingGame3DCharacter::Offensive_Special() {
 			GetMesh()->PlayAnimation(OSpecialAnim, false);
 			actTimer = 1.867f;
 			attackDamage = 12.f;
-		}		attacking = true;
-		GetMesh()->PlayAnimation(Attack1Anim, false);
-		actTimer = 1.4f;
-		attackDamage = 8.f;
+		}
 	}
 	else {
 		inputBufferTimer = inputBufferingTime;
@@ -250,7 +249,7 @@ void AFightingGame3DCharacter::Attack1() {
 	if (actTimer <= 0.f) {
 		if (SpendStamina(15.f)) {
 			attacking = true;
-			GetMesh()->PlayAnimation(Attack1Anim, false);
+			AnimationInstance
 			actTimer = 1.4f;
 			attackDamage = 8.f;
 		}
