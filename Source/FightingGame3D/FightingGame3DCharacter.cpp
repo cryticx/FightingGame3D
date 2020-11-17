@@ -1,5 +1,6 @@
 #include "FightingGame3DCharacter.h"
 
+#include "Animation/AnimInstance.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -48,12 +49,12 @@ AFightingGame3DCharacter::AFightingGame3DCharacter() {
 	attacking = blocking = dodging = false;
 
 	//Setup Animations
-	static ConstructorHelpers::FObjectFinder<UAnimMontage> animation1(TEXT("AnimMontage'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Attack_PrimaryA_Montage'"));
-	Attack1AnimC0 = animation1.Object;
-	static ConstructorHelpers::FObjectFinder<UAnimMontage> animation1(TEXT("AnimMontage'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Attack_PrimaryB_Montage'"));
-	Attack1AnimC1 = animation1.Object;
-	static ConstructorHelpers::FObjectFinder<UAnimMontage> animation1(TEXT("AnimMontage'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Attack_PrimaryC_Montage'"));
-	Attack1AnimC2 = animation1.Object;
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> animation1C0(TEXT("AnimMontage'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Attack_PrimaryA_Montage'"));
+	Attack1AnimC0 = animation1C0.Object;
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> animation1C1(TEXT("AnimMontage'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Attack_PrimaryB_Montage'"));
+	Attack1AnimC1 = animation1C1.Object;
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> animation1C2(TEXT("AnimMontage'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Attack_PrimaryC_Montage'"));
+	Attack1AnimC2 = animation1C2.Object;
 	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation2(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Attack_A_Med'"));
 	Attack2Anim = animation2.Object;
 	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation3(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Ability_E'"));
@@ -249,7 +250,6 @@ void AFightingGame3DCharacter::Attack1() {
 	if (actTimer <= 0.f) {
 		if (SpendStamina(15.f)) {
 			attacking = true;
-			AnimationInstance
 			actTimer = 1.4f;
 			attackDamage = 8.f;
 		}
