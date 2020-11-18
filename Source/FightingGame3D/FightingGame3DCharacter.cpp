@@ -46,7 +46,7 @@ AFightingGame3DCharacter::AFightingGame3DCharacter() {
 	
 	actTimer = 0.f;
 	comboCounter = 0;
-	attacking = blocking = dodging = false;
+	attacking = blocking = dodging = end_lag = false;
 
 	//Setup Animations
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> animation1C0(TEXT("AnimMontage'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Attack_PrimaryA_Montage'"));
@@ -92,7 +92,7 @@ void AFightingGame3DCharacter::Tick(float DeltaTime) {
 	}
 	
 	if (actTimer <= 0.f) {
-		attacking = dodging = attackHit = false;
+		attacking = dodging = attackHit = end_lag = blocking = false;
 		if (inputBufferTimer > 0.f)
 			(this->*inputBuffer)();
 		inputBufferTimer = 0.f;
@@ -101,6 +101,8 @@ void AFightingGame3DCharacter::Tick(float DeltaTime) {
 		actTimer -= DeltaTime;
 		if (inputBufferTimer > 0.f)
 			inputBufferTimer -= DeltaTime;
+		if (end_lag)
+			GetMesh()->SetPlayRate(.25);
 	}
 }
 
@@ -177,10 +179,17 @@ void AFightingGame3DCharacter::MoveRight(float Value) {
 float AFightingGame3DCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) {
 	if (!dodging)
 	{
-		LaunchCharacter(((AFightingGame3DCharacter*)DamageCauser)->GetActorForwardVector() * 400.f, false, false);
+		AFightingGame3DCharacter* Other_Player = (AFightingGame3DCharacter*)DamageCauser;
+		LaunchCharacter(Other_Player->GetActorForwardVector() * 400.f, false, false);
 		//GetMesh()->PlayAnimation(HurtAnim, false);
-		health -= DamageAmount;
-		actTimer = 0.5f;
+		if (blocking) {
+			Other_Player->end_lag = true;
+			Other_Player->actTimer *= 1.5;
+		}
+		else {
+			health -= DamageAmount;
+			actTimer = 0.5f;
+		}
 		if (health <= 0.f) {
 			DetachFromControllerPendingDestroy();
 			GetMesh()->SetCollisionProfileName(FName(TEXT("Ragdoll")), true);
@@ -242,8 +251,17 @@ void AFightingGame3DCharacter::Offensive_Special() {
 }
 
 void AFightingGame3DCharacter::Defensive_Special() {
-	blocking = true;
-	GetMesh()->PlayAnimation(DSpecialAnim, false);
+	if (actTimer <= 0.f) {
+		if (SpendStamina(25.f)) {
+			blocking = true;
+			actTimer = 2.8f;
+			GetMesh()->PlayAnimation(DSpecialAnim, false);
+		}
+	}
+	else {
+		inputBufferTimer = inputBufferingTime;
+		inputBuffer = &AFightingGame3DCharacter::Defensive_Special;
+	}
 }
 
 void AFightingGame3DCharacter::Attack1() {
@@ -252,6 +270,13 @@ void AFightingGame3DCharacter::Attack1() {
 			attacking = true;
 			actTimer = 1.4f;
 			attackDamage = 8.f;
+			AnimInstance = GetMesh()->GetAnimInstance();
+			if(comboCounter == 0)
+			AnimInstance->Montage_Play(Attack1AnimC0, 1.0f, EMontagePlayReturnType::Duration, 0.0f, true);
+			if (comboCounter == 1)
+			AnimInstance->Montage_Play(Attack1AnimC1, 1.0f, EMontagePlayReturnType::Duration, 0.0f, true);
+			if (comboCounter == 2)
+			AnimInstance->Montage_Play(Attack1AnimC2, 1.0f, EMontagePlayReturnType::Duration, 0.0f, true);
 		}
 	}
 	else {

@@ -38,6 +38,9 @@ class AFightingGame3DCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
 	UAnimSequence* HurtAnim;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
+		UAnimInstance* AnimInstance;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Capsule, meta = (AllowPrivateAccess = "true"))
 	class UCapsuleComponent* sword;
 	
@@ -55,13 +58,10 @@ class AFightingGame3DCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Status, meta = (AllowPrivateAccess = "true"))
 	float stamina;
 
-	uint8_t comboCounter;
-    
-	float actTimer, inputBufferTimer, staminaRegen, attackDamage;
+	float actTimer, staminaRegen, attackDamage;
 	
-	bool attacking, attackHit, blocking, dodging, back, left, right;
+	bool attacking, attackHit, blocking, dodging, back, left, right, end_lag;
 	
-	void (AFightingGame3DCharacter::*inputBuffer)();
 	
 protected:
 	/** Called for forwards/backward input */
@@ -94,6 +94,13 @@ public:
 	/** Base look up/down rate, in deg/sec. Other scaling may affect final rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseLookUpRate;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Status)
+	int comboCounter;
+
+	float inputBufferTimer;
+
+	void (AFightingGame3DCharacter::* inputBuffer)();
 	
 	void Dodge();
 	void Offensive_Special();
