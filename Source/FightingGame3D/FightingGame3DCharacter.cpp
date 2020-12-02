@@ -7,7 +7,6 @@
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
-
 //////////////////////////////////////////////////////////////////////////
 // AFightingGame3DCharacter
 
@@ -55,7 +54,7 @@ AFightingGame3DCharacter::AFightingGame3DCharacter() {
 	Attack1AnimC1 = animation1C1.Object;
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> animation1C2(TEXT("AnimMontage'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Attack_PrimaryC_Montage'"));
 	Attack1AnimC2 = animation1C2.Object;
-	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation2(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Attack_A_Med'"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation2(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Attack_D_Med'"));
 	Attack2Anim = animation2.Object;
 	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation3(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Ability_E'"));
 	Attack3Anim = animation3.Object;
@@ -75,24 +74,31 @@ AFightingGame3DCharacter::AFightingGame3DCharacter() {
 	DodgeLAnim = animation10.Object;
 	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation11(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Right_Dodge'"));
 	DodgeRAnim = animation11.Object;
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation12(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Idle'"));
+	Idle = animation12.Object;
+}
+
+void AFightingGame3DCharacter::BeginPlay() {
+	Super::BeginPlay();
+	AnimInstance = GetMesh()->GetAnimInstance();
 }
 
 void AFightingGame3DCharacter::Tick(float DeltaTime) {
 	if (Opponent != NULL)
 		SetActorRotation(UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), Opponent->GetActorLocation()), ETeleportType::None);
-	else if (((APlayerController*) GetController())->NetPlayerIndex == 0 && UGameplayStatics::GetPlayerController(GetWorld(), 1) != NULL)
-		Opponent = (AActor*) (UGameplayStatics::GetPlayerController(GetWorld(), 1)->GetCharacter());
-	else if (UGameplayStatics::GetPlayerController(GetWorld(), 0) != NULL)
-		Opponent = (AActor*) (UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetCharacter());
+	else if (((APlayerController*)GetController())->NetPlayerIndex == 0 && UGameplayStatics::GetPlayerController(GetWorld(), 1) != NULL) 
+		Opponent = (AActor*)(UGameplayStatics::GetPlayerController(GetWorld(), 1)->GetCharacter());
+	else if (UGameplayStatics::GetPlayerController(GetWorld(), 0) != NULL) 
+		Opponent = (AActor*)(UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetCharacter());
 	
-	if (stamina < maxStamina) {
+	if (stamina < maxStamina && !blocking) {
 		stamina += staminaRegen * DeltaTime;
 		if (stamina > maxStamina)
 			stamina = maxStamina;
 	}
 	
 	if (actTimer <= 0.f) {
-		attacking = dodging = attackHit = end_lag = blocking = false;
+		attacking = dodging = attackHit = end_lag = false;
 		if (inputBufferTimer > 0.f)
 			(this->*inputBuffer)();
 		inputBufferTimer = 0.f;
@@ -102,7 +108,7 @@ void AFightingGame3DCharacter::Tick(float DeltaTime) {
 		if (inputBufferTimer > 0.f)
 			inputBufferTimer -= DeltaTime;
 		if (end_lag)
-			GetMesh()->SetPlayRate(.25);
+			AnimInstance->Montage_SetPlayRate(AnimInstance->GetCurrentActiveMontage(),.35f);
 	}
 }
 
@@ -181,14 +187,21 @@ float AFightingGame3DCharacter::TakeDamage(float DamageAmount, struct FDamageEve
 	{
 		AFightingGame3DCharacter* Other_Player = (AFightingGame3DCharacter*)DamageCauser;
 		LaunchCharacter(Other_Player->GetActorForwardVector() * 400.f, false, false);
-		//GetMesh()->PlayAnimation(HurtAnim, false);
 		if (blocking) {
-			Other_Player->end_lag = true;
-			Other_Player->actTimer *= 1.5;
+			if (!SpendStamina(20.f)) {
+				actTimer = 4.0f;
+				blocking = false;
+				AnimInstance->PlaySlotAnimationAsDynamicMontage(HurtAnim, TEXT("DefaultSlot"), 0.05f, 0.05f, 1.f, 1);
+			}
+			else {
+				Other_Player->end_lag = true;
+				Other_Player->actTimer *= 1.5;
+			}
 		}
 		else {
 			health -= DamageAmount;
 			actTimer = 0.5f;
+			AnimInstance->PlaySlotAnimationAsDynamicMontage(HurtAnim, TEXT("DefaultSlot"), 0.05f, 0.05f, 1.f, 1);
 		}
 		if (health <= 0.f) {
 			DetachFromControllerPendingDestroy();
@@ -205,25 +218,25 @@ void AFightingGame3DCharacter::Dodge() {
 	if (actTimer <= 0.f) {
 		if (SpendStamina(20.f)) {
 			if (back) {
-				GetMesh()->PlayAnimation(DodgeBAnim, false);
+				AnimInstance->PlaySlotAnimationAsDynamicMontage(DodgeBAnim, TEXT("DefaultSlot"), .1f, .1f, 1.f, 1);
 				LaunchCharacter(GetActorForwardVector() * -2000.f, true, false);
 				dodging = true;
 				actTimer = 0.776f;
 			}
 			else if (left) {
-				GetMesh()->PlayAnimation(DodgeLAnim, false);
+				AnimInstance->PlaySlotAnimationAsDynamicMontage(DodgeLAnim, TEXT("DefaultSlot"), .1f, .1f, 1.f, 1);
 				LaunchCharacter(GetActorRightVector() * -2000.f, true, false);
 				dodging = true;
 				actTimer = 1.154f;
 			}
 			else if (right) {
-				GetMesh()->PlayAnimation(DodgeRAnim, false);
+				AnimInstance->PlaySlotAnimationAsDynamicMontage(DodgeRAnim, TEXT("DefaultSlot"), .1f, .1f, 1.f, 1);
 				LaunchCharacter(GetActorRightVector() * 2000.f, true, false);
 				dodging = true;
 				actTimer = 1.184f;
 			}
 			else { // dash forward by default
-				GetMesh()->PlayAnimation(DodgeFAnim, false);
+				AnimInstance->PlaySlotAnimationAsDynamicMontage(DodgeFAnim, TEXT("DefaultSlot"), .1f, .1f, 1.f, 1);
 				LaunchCharacter(GetActorForwardVector() * 2000.f, true, false);
 				actTimer = 0.824f;
 			}
@@ -239,7 +252,7 @@ void AFightingGame3DCharacter::Offensive_Special() {
 	if (actTimer <= 0.f) {
 		if (SpendStamina(25.f)) {
 			attacking = true;
-			GetMesh()->PlayAnimation(OSpecialAnim, false);
+			AnimInstance->PlaySlotAnimationAsDynamicMontage(OSpecialAnim, TEXT("DefaultSlot"), 0.05f, 0.05f, 1.f, 1);
 			actTimer = 1.867f;
 			attackDamage = 12.f;
 		}
@@ -253,9 +266,12 @@ void AFightingGame3DCharacter::Offensive_Special() {
 void AFightingGame3DCharacter::Defensive_Special() {
 	if (actTimer <= 0.f) {
 		if (SpendStamina(25.f)) {
-			blocking = true;
-			actTimer = 2.8f;
-			GetMesh()->PlayAnimation(DSpecialAnim, false);
+			blocking = !blocking;
+			actTimer = 0.933f; 
+			if (blocking)
+				AnimInstance->PlaySlotAnimationAsDynamicMontage(DSpecialAnim, TEXT("DefaultSlot"), 0.05f, 0.05f, 0.f, 1);
+			else
+				AnimInstance->PlaySlotAnimationAsDynamicMontage(Idle, TEXT("DefaultSlot"), 0.05f, 0.05f, 1.f, 1);
 		}
 	}
 	else {
@@ -270,7 +286,6 @@ void AFightingGame3DCharacter::Attack1() {
 			attacking = true;
 			actTimer = 1.4f;
 			attackDamage = 8.f;
-			AnimInstance = GetMesh()->GetAnimInstance();
 			if(comboCounter == 0)
 			AnimInstance->Montage_Play(Attack1AnimC0, 1.0f, EMontagePlayReturnType::Duration, 0.0f, true);
 			if (comboCounter == 1)
@@ -280,7 +295,7 @@ void AFightingGame3DCharacter::Attack1() {
 		}
 	}
 	else {
-		inputBufferTimer = inputBufferingTime;
+		inputBufferTimer = 1.2f;
 		inputBuffer = &AFightingGame3DCharacter::Attack1;
 	}
 }
@@ -288,7 +303,7 @@ void AFightingGame3DCharacter::Attack1() {
 void AFightingGame3DCharacter::Attack2() {
 	if (actTimer <= 0.f && SpendStamina(10.f)) {
 		attacking = true;
-		GetMesh()->PlayAnimation(Attack2Anim, false);
+		AnimInstance->PlaySlotAnimationAsDynamicMontage(Attack2Anim, TEXT("DefaultSlot"), 0.05f, 0.05f, 1.f, 1);
 		actTimer = 0.8f;
 		attackDamage = 8.f;
 	}
@@ -301,7 +316,7 @@ void AFightingGame3DCharacter::Attack2() {
 void AFightingGame3DCharacter::Attack3() {
 	if (actTimer <= 0.f && SpendStamina(10.f)) {
 		attacking = true;
-		GetMesh()->PlayAnimation(Attack3Anim, false);
+		AnimInstance->PlaySlotAnimationAsDynamicMontage(Attack3Anim, TEXT("DefaultSlot"), 0.05f, 0.05f, 1.f, 1);
 		actTimer = 1.267f;
 		attackDamage = 8.f;
 	}
@@ -314,7 +329,7 @@ void AFightingGame3DCharacter::Attack3() {
 void AFightingGame3DCharacter::Attack4() {
 	if (actTimer <= 0.f && SpendStamina(15.f)) {
 		attacking = true;
-		GetMesh()->PlayAnimation(Attack4Anim, false);
+		AnimInstance->PlaySlotAnimationAsDynamicMontage(Attack4Anim, TEXT("DefaultSlot"), 0.05f, 0.05f, 1.f, 1);
 		actTimer = 1.867f;
 		attackDamage = 12.f;
 	}
@@ -340,4 +355,8 @@ bool AFightingGame3DCharacter::SpendStamina(float amount) {
 	}
 	else
 		return false;
+}
+
+void AFightingGame3DCharacter::ClearBuffer() {
+
 }

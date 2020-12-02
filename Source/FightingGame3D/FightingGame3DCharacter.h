@@ -37,6 +37,8 @@ class AFightingGame3DCharacter : public ACharacter
 	UAnimSequence* Attack4Anim;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
 	UAnimSequence* HurtAnim;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
+	UAnimSequence* Idle;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
 		UAnimInstance* AnimInstance;
@@ -58,7 +60,7 @@ class AFightingGame3DCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Status, meta = (AllowPrivateAccess = "true"))
 	float stamina;
 
-	float actTimer, staminaRegen, attackDamage;
+	float staminaRegen, attackDamage;
 	
 	bool attacking, attackHit, blocking, dodging, back, left, right, end_lag;
 	
@@ -95,10 +97,11 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseLookUpRate;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Status)
 	int comboCounter;
 
 	float inputBufferTimer;
+
+	float actTimer;
 
 	void (AFightingGame3DCharacter::* inputBuffer)();
 	
@@ -110,11 +113,13 @@ public:
 	void Attack3();
 	void Attack4();
 	
+	void ClearBuffer();
 	bool SpendStamina(float amount);
 	
 	UFUNCTION()
 	void WeaponOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
+	virtual void BeginPlay() override;
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const & DamageEvent, class AController * EventInstigator, AActor * DamageCauser) override;
 	virtual void Tick(float DeltaSeconds) override;
 };

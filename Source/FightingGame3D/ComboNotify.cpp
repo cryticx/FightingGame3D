@@ -13,4 +13,10 @@
 		 Player->comboCounter++;
 	 }
 	 GEngine->AddOnScreenDebugMessage(-1, 4.5, FColor::Orange, FString::FromInt(Player->comboCounter));
+	 if (Player->inputBuffer == &AFightingGame3DCharacter::Attack1 && Player->inputBufferTimer > 0) {
+		 //GEngine->AddOnScreenDebugMessage(-1, 4.5, FColor::Orange, FString(TEXT("Quick Combo")));
+		 Player->inputBuffer = &AFightingGame3DCharacter::ClearBuffer;
+		 Player->actTimer = 0;
+		 Player->Attack1();		
+	 }
 }

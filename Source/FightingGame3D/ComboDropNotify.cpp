@@ -10,5 +10,6 @@ void UComboDropNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBas
 	if (Player->inputBuffer != &AFightingGame3DCharacter::Attack1 || Player->inputBufferTimer <= 0) {
 		Player->comboCounter = 0;
 		GEngine->AddOnScreenDebugMessage(-1, 4.5, FColor::Orange, FString(TEXT("Combo Dropped")));
+		//GEngine->AddOnScreenDebugMessage(-1, 4.5, FColor::Orange, FString::SanitizeFloat(Player->inputBufferTimer));
 	}
 }
