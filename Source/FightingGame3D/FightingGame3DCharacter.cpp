@@ -16,18 +16,13 @@ AFightingGame3DCharacter::AFightingGame3DCharacter() {
 	PrimaryActorTick.bCanEverTick = true;
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
-
-	// set our turn rates for input
-	BaseTurnRate = 45.f;
-	BaseLookUpRate = 45.f;
-
-	// Don't rotate when the controller rotates. Let that just affect the camera.
+	
 	bUseControllerRotationPitch = false;
-	bUseControllerRotationYaw = false;
+	bUseControllerRotationYaw = true;
 	bUseControllerRotationRoll = false;
 
 	// Configure character movement
-	GetCharacterMovement()->bOrientRotationToMovement = true; // Character moves in the direction of input...	
+	GetCharacterMovement()->bOrientRotationToMovement = false;
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 540.0f, 0.0f); // ...at this rotation rate
 	GetCharacterMovement()->JumpZVelocity = 600.f;
 	GetCharacterMovement()->AirControl = 0.2f;
@@ -38,10 +33,10 @@ AFightingGame3DCharacter::AFightingGame3DCharacter() {
 	sword->OnComponentBeginOverlap.AddDynamic(this, &AFightingGame3DCharacter::WeaponOverlapBegin);
 
 	//Setup Vars
-	health = maxHealth = 100.0f;
+	health = maxHealth = 75.f;
 	
-	stamina = maxStamina = 100.0f;
-	staminaRegen = 20.f;
+	stamina = maxStamina = 25.f;
+	staminaRegen = 8.f;
 	
 	actTimer = 0.f;
 	comboCounter = 0;
@@ -66,16 +61,14 @@ AFightingGame3DCharacter::AFightingGame3DCharacter() {
 	DSpecialAnim = animation6.Object;
 	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation7(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/HitReact_Front'"));
 	HurtAnim = animation7.Object;
-	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation8(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/F_Dodge'"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation8(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Advance'"));
 	DodgeFAnim = animation8.Object;
-	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation9(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Backward_Dodge'"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation9(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Retreat'"));
 	DodgeBAnim = animation9.Object;
-	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation10(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Left_Dodge'"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation10(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/EvadeLeft'"));
 	DodgeLAnim = animation10.Object;
-	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation11(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Right_Dodge'"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation11(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/EvadeRight'"));
 	DodgeRAnim = animation11.Object;
-	static ConstructorHelpers::FObjectFinder<UAnimSequence> animation12(TEXT("AnimSequence'/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Idle'"));
-	Idle = animation12.Object;
 }
 
 void AFightingGame3DCharacter::BeginPlay() {
@@ -85,22 +78,28 @@ void AFightingGame3DCharacter::BeginPlay() {
 
 void AFightingGame3DCharacter::Tick(float DeltaTime) {
 	if (Opponent != NULL)
-		SetActorRotation(UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), Opponent->GetActorLocation()), ETeleportType::None);
+		GetController()->SetControlRotation(UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), Opponent->GetActorLocation()));
 	else if (((APlayerController*)GetController())->NetPlayerIndex == 0 && UGameplayStatics::GetPlayerController(GetWorld(), 1) != NULL) 
 		Opponent = (AActor*)(UGameplayStatics::GetPlayerController(GetWorld(), 1)->GetCharacter());
 	else if (UGameplayStatics::GetPlayerController(GetWorld(), 0) != NULL) 
 		Opponent = (AActor*)(UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetCharacter());
 	
-	if (stamina < maxStamina && !blocking) {
-		stamina += staminaRegen * DeltaTime;
+	if (stamina < maxStamina) {
+		if (blocking)
+			stamina += 0.2f * staminaRegen * DeltaTime;
+		else
+			stamina += staminaRegen * DeltaTime;
+		
 		if (stamina > maxStamina)
 			stamina = maxStamina;
 	}
 	
 	if (actTimer <= 0.f) {
-		attacking = dodging = attackHit = end_lag = false;
+		attacking = dodging = attackHit = end_lag = blocking = false;
+		
 		if (inputBufferTimer > 0.f)
 			(this->*inputBuffer)();
+		
 		inputBufferTimer = 0.f;
 	}
 	else {
@@ -131,16 +130,6 @@ void AFightingGame3DCharacter::SetupPlayerInputComponent(class UInputComponent* 
 	PlayerInputComponent->BindAction("Attack 2", IE_Pressed, this, &AFightingGame3DCharacter::Attack2);
 	PlayerInputComponent->BindAction("Attack 3", IE_Pressed, this, &AFightingGame3DCharacter::Attack3);
 	PlayerInputComponent->BindAction("Attack 4", IE_Pressed, this, &AFightingGame3DCharacter::Attack4);
-}
-
-void AFightingGame3DCharacter::TurnAtRate(float Rate) {
-	// calculate delta for this frame from the rate information
-	AddControllerYawInput(Rate * BaseTurnRate * GetWorld()->GetDeltaSeconds());
-}
-
-void AFightingGame3DCharacter::LookUpAtRate(float Rate) {
-	// calculate delta for this frame from the rate information
-	AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
 }
 
 void AFightingGame3DCharacter::MoveForward(float Value) {
@@ -208,6 +197,7 @@ float AFightingGame3DCharacter::TakeDamage(float DamageAmount, struct FDamageEve
 			GetMesh()->SetCollisionProfileName(FName(TEXT("Ragdoll")), true);
 			GetMesh()->SetSimulatePhysics(true);
 			GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			SetActorTickEnabled(false);
 		}
 		return DamageAmount;
 	}
@@ -253,6 +243,7 @@ void AFightingGame3DCharacter::Offensive_Special() {
 		if (SpendStamina(25.f)) {
 			attacking = true;
 			AnimInstance->PlaySlotAnimationAsDynamicMontage(OSpecialAnim, TEXT("DefaultSlot"), 0.05f, 0.05f, 1.f, 1);
+			LaunchCharacter(GetActorForwardVector() * 500.f + FVector(0.f, 0.f, 200.f), true, false);
 			actTimer = 1.867f;
 			attackDamage = 12.f;
 		}
@@ -265,14 +256,9 @@ void AFightingGame3DCharacter::Offensive_Special() {
 
 void AFightingGame3DCharacter::Defensive_Special() {
 	if (actTimer <= 0.f) {
-		if (SpendStamina(25.f)) {
-			blocking = !blocking;
-			actTimer = 0.933f; 
-			if (blocking)
-				AnimInstance->PlaySlotAnimationAsDynamicMontage(DSpecialAnim, TEXT("DefaultSlot"), 0.05f, 0.05f, 0.f, 1);
-			else
-				AnimInstance->PlaySlotAnimationAsDynamicMontage(Idle, TEXT("DefaultSlot"), 0.05f, 0.05f, 1.f, 1);
-		}
+		blocking = true;
+		actTimer = 0.933f;
+		AnimInstance->PlaySlotAnimationAsDynamicMontage(DSpecialAnim, TEXT("DefaultSlot"), 0.05f, 0.05f, 0.f, 1);
 	}
 	else {
 		inputBufferTimer = inputBufferingTime;
@@ -287,11 +273,11 @@ void AFightingGame3DCharacter::Attack1() {
 			actTimer = 1.4f;
 			attackDamage = 8.f;
 			if(comboCounter == 0)
-			AnimInstance->Montage_Play(Attack1AnimC0, 1.0f, EMontagePlayReturnType::Duration, 0.0f, true);
+				AnimInstance->Montage_Play(Attack1AnimC0, 1.0f, EMontagePlayReturnType::Duration, 0.0f, true);
 			if (comboCounter == 1)
-			AnimInstance->Montage_Play(Attack1AnimC1, 1.0f, EMontagePlayReturnType::Duration, 0.0f, true);
+				AnimInstance->Montage_Play(Attack1AnimC1, 1.0f, EMontagePlayReturnType::Duration, 0.0f, true);
 			if (comboCounter == 2)
-			AnimInstance->Montage_Play(Attack1AnimC2, 1.0f, EMontagePlayReturnType::Duration, 0.0f, true);
+				AnimInstance->Montage_Play(Attack1AnimC2, 1.0f, EMontagePlayReturnType::Duration, 0.0f, true);
 		}
 	}
 	else {
@@ -340,8 +326,7 @@ void AFightingGame3DCharacter::Attack4() {
 }
 
 void AFightingGame3DCharacter::WeaponOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) {
-	if (attacking && !attackHit && OtherActor && (OtherActor != this) && OtherComp)
-	{
+	if (attacking && !attackHit && OtherActor && (OtherActor != this) && OtherComp) {
 		FDamageEvent damage = FDamageEvent();
 		OtherActor->TakeDamage(attackDamage, damage, Controller, this);
 		attackHit = true;
@@ -357,6 +342,4 @@ bool AFightingGame3DCharacter::SpendStamina(float amount) {
 		return false;
 }
 
-void AFightingGame3DCharacter::ClearBuffer() {
-
-}
+void AFightingGame3DCharacter::ClearBuffer() {}

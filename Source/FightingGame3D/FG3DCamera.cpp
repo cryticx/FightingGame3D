@@ -23,10 +23,9 @@ AFG3DCamera::AFG3DCamera()
 void AFG3DCamera::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	if (Player0 != NULL) {
-		// TODO make sure close-to-wall behavior is good, smooth rotations (use current forward direction?)
+	if (Player0 != NULL && Player1 != NULL) {
 		SetActorLocation((Player0->GetActorLocation() + Player1->GetActorLocation()) / 2.f + FVector(0.f, 0.f, 20.f)); // placed half-way between both players, slightly above
-		SetActorRotation(UKismetMathLibrary::FindLookAtRotation(Player0->GetActorLocation(), Player1->GetActorLocation()).Add(0.f, 90.f, 0.f)); // camera faced perpendicular to players
+		SetActorRotation(UKismetMathLibrary::FindLookAtRotation(Player0->GetActorLocation(), Player1->GetActorLocation()).Add(0.f, 270.f, 0.f)); // camera faced perpendicular to players
 		CameraBoom->TargetArmLength = Player0->GetDistanceTo(Player1) / 2.f + 150.f; // scale zoom with player's distance from each other
 	}
 	else if (UGameplayStatics::GetPlayerController(GetWorld(), 0) != NULL && UGameplayStatics::GetPlayerController(GetWorld(), 1) != NULL) {
