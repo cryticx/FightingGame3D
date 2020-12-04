@@ -268,7 +268,7 @@ void AFightingGame3DCharacter::Defensive_Special() {
 
 void AFightingGame3DCharacter::Attack1() {
 	if (actTimer <= 0.f) {
-		if (SpendStamina(15.f)) {
+		if (SpendStamina(10.f)) {
 			attacking = true;
 			attackDamage = 8.f;
 			if(comboCounter == 0) {
@@ -286,7 +286,7 @@ void AFightingGame3DCharacter::Attack1() {
 		}
 	}
 	else {
-		inputBufferTimer = 1.2f;
+		inputBufferTimer = 1.4f;
 		inputBuffer = &AFightingGame3DCharacter::Attack1;
 	}
 }
